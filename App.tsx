@@ -89,6 +89,7 @@ const LandingPage = () => {
 
 const BuilderPage = () => {
   const [data, setData] = useState<BusinessData>(DEFAULT_BUSINESS_DATA);
+  const [servicesInput, setServicesInput] = useState(DEFAULT_BUSINESS_DATA.services.join(', '));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isRefining, setIsRefining] = useState(false);
   const [ghToken, setGhToken] = useState('');
@@ -148,7 +149,9 @@ const BuilderPage = () => {
   };
 
   const handleServicesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const services = e.target.value.split(',').map(s => s.trim()).filter(s => s !== "");
+    const value = e.target.value;
+    setServicesInput(value);
+    const services = value.split(',').map(s => s.trim()).filter(s => s !== "");
     setData(prev => ({ ...prev, services }));
     validateField('services', services);
   };
@@ -366,7 +369,9 @@ const BuilderPage = () => {
                     Services <span className="text-slate-400 text-[10px] font-medium">(comma separated)</span>
                   </label>
                   <input 
-                    type="text" value={data.services.join(', ')} onChange={handleServicesChange}
+                    type="text" 
+                    value={servicesInput} 
+                    onChange={handleServicesChange}
                     className={getInputClass('services')}
                     placeholder="Coffee, Bakery, Catering"
                   />
