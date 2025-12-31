@@ -76,6 +76,7 @@ const ThemePreviewIcon = ({ themeId, color }: { themeId: ThemeId, color: string 
 const BuilderPage = () => {
   const [data, setData] = useState<BusinessData>(DEFAULT_BUSINESS_DATA);
   const [activeTab, setActiveTab] = useState<'identity' | 'content' | 'services' | 'style'>('identity');
+  const [viewport, setViewport] = useState<'mobile' | 'desktop'>('mobile');
   const [isRefining, setIsRefining] = useState(false);
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
   const [showDeployModal, setShowDeployModal] = useState(false);
@@ -136,6 +137,20 @@ const BuilderPage = () => {
     setIsRefining(false);
   };
 
+  const handleDownloadZip = async () => {
+    const zip = new JSZip();
+    const html = generateHtml(data, true);
+    const css = generateCss(data.themeColor);
+    const js = generateJs();
+
+    zip.file("index.html", html);
+    zip.file("style.css", css);
+    zip.file("script.js", js);
+
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, `${data.name.toLowerCase().replace(/\s+/g, '-')}-website.zip`);
+  };
+
   const iframeSrcDoc = useMemo(() => generateHtml(data, true), [data]);
 
   const inputBase = "w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-xl outline-none transition-all font-medium text-sm";
@@ -144,6 +159,7 @@ const BuilderPage = () => {
   return (
     <div className="pt-20 pb-10 px-4 min-h-screen bg-slate-50">
       <div className="max-w-[1440px] mx-auto grid lg:grid-cols-12 gap-8">
+        {/* Editor Sidebar */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-xl sticky top-24 overflow-y-auto max-h-[calc(100vh-120px)] no-scrollbar">
             <nav className="flex gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar" aria-label="Editor sections">
@@ -271,17 +287,51 @@ const BuilderPage = () => {
               <button onClick={() => setShowDeployModal(true)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition flex items-center justify-center gap-2 shadow-xl">
                 <i className="fab fa-github"></i> Deploy to Web
               </button>
+              <button onClick={handleDownloadZip} className="w-full py-4 border-2 border-slate-900 text-slate-900 rounded-2xl font-bold text-sm hover:bg-slate-50 transition flex items-center justify-center gap-2">
+                <i className="fas fa-file-archive"></i> Download Source (ZIP)
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-8">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-2xl h-[calc(100vh-120px)] relative">
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-slate-900 text-white rounded-full text-[10px] font-black z-20 flex items-center gap-3 shadow-2xl">
-              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-              PREVIEW MODE
+        {/* Mobile-First Preview Area */}
+        <div className="lg:col-span-8 flex flex-col">
+          <div className="flex justify-between items-center mb-4 px-6">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Preview</span>
             </div>
-            <iframe srcDoc={iframeSrcDoc} className="w-full h-full border-none" title="Instant Website Preview" />
+            
+            <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+              <button 
+                onClick={() => setViewport('mobile')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${viewport === 'mobile' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+              >
+                <i className="fas fa-mobile-alt"></i> Mobile
+              </button>
+              <button 
+                onClick={() => setViewport('desktop')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${viewport === 'desktop' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+              >
+                <i className="fas fa-desktop"></i> Desktop
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 bg-slate-200/50 rounded-[3rem] border border-slate-200 overflow-hidden relative flex items-center justify-center p-8 min-h-[600px]">
+            {/* Device Frame */}
+            <div className={`transition-all duration-500 ease-in-out relative ${viewport === 'mobile' ? 'w-[375px] h-[750px] max-h-full rounded-[3.5rem] border-[12px] border-slate-900 shadow-2xl overflow-hidden' : 'w-full h-full rounded-2xl border border-slate-200 shadow-2xl'}`}>
+              {viewport === 'mobile' && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-2xl z-30 flex items-center justify-center">
+                  <div className="w-12 h-1 bg-slate-800 rounded-full"></div>
+                </div>
+              )}
+              <iframe 
+                srcDoc={iframeSrcDoc} 
+                className="w-full h-full border-none bg-white" 
+                title="Instant Website Preview" 
+              />
+            </div>
           </div>
         </div>
       </div>
