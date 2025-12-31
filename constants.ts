@@ -16,6 +16,7 @@ export const DEFAULT_BUSINESS_DATA: BusinessData = {
   ],
   themeColor: "#16a34a",
   themeId: 'modern',
+  serviceColumns: 3,
   socials: {
     instagram: "https://instagram.com",
     facebook: "https://facebook.com",

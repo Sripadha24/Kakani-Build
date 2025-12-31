@@ -16,6 +16,7 @@ export interface BusinessData {
   services: ServiceItem[];
   themeColor: string;
   themeId: ThemeId;
+  serviceColumns: 1 | 2 | 3; // New flexibility field
   logoUrl?: string;
   heroImageUrl?: string;
   aboutImageUrl?: string;
