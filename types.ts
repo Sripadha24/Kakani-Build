@@ -1,3 +1,11 @@
+export type ThemeId = 'modern' | 'midnight' | 'executive' | 'organic' | 'neobrutalist' | 'luxury' | 'editorial' | 'futuristic' | 'vibrant' | 'vintage';
+
+export interface ServiceItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+}
 
 export interface BusinessData {
   name: string;
@@ -5,11 +13,19 @@ export interface BusinessData {
   phone: string;
   whatsapp: string;
   address: string;
-  services: string[];
+  services: ServiceItem[];
   themeColor: string;
+  themeId: ThemeId;
   logoUrl?: string;
   heroImageUrl?: string;
   aboutImageUrl?: string;
+  socials: {
+    instagram?: string;
+    facebook?: string;
+    linkedin?: string;
+  };
+  seoKeywords: string;
+  fontStyle: 'sans' | 'serif';
 }
 
 export interface DeploymentStatus {

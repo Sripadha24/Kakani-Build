@@ -4,6 +4,15 @@ export interface GitHubFile {
   content: string;
 }
 
+/**
+ * Encodes string to Base64 reliably with UTF-8 support
+ */
+const toBase64 = (str: string) => {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+    return String.fromCharCode(parseInt(p1, 16));
+  }));
+};
+
 export const deployToGitHub = async (
   token: string,
   repoName: string,
@@ -17,11 +26,11 @@ export const deployToGitHub = async (
 
   // 1. Get User Details
   const userRes = await fetch('https://api.github.com/user', { headers });
-  if (!userRes.ok) throw new Error('Invalid GitHub Token');
+  if (!userRes.ok) throw new Error('Invalid GitHub Token. Please check your permissions.');
   const user = await userRes.json();
   const username = user.login;
 
-  // 2. Create Repository
+  // 2. Create Repository (or ignore if exists)
   const createRepoRes = await fetch('https://api.github.com/user/repos', {
     method: 'POST',
     headers,
@@ -35,7 +44,8 @@ export const deployToGitHub = async (
 
   if (!createRepoRes.ok) {
     const err = await createRepoRes.json();
-    if (err.message !== 'Repository creation failed.') {
+    // 422 usually means the repo already exists
+    if (createRepoRes.status !== 422) {
        throw new Error(err.message || 'Failed to create repository');
     }
   }
@@ -44,17 +54,32 @@ export const deployToGitHub = async (
   for (const file of files) {
     const filePath = `https://api.github.com/repos/${username}/${repoName}/contents/${file.path}`;
     
-    await fetch(filePath, {
+    // Check if file exists to get its SHA (required for updates)
+    const existingFileRes = await fetch(filePath, { headers });
+    let sha: string | undefined;
+    if (existingFileRes.ok) {
+      const existingFileData = await existingFileRes.json();
+      sha = existingFileData.sha;
+    }
+
+    const uploadRes = await fetch(filePath, {
       method: 'PUT',
       headers,
       body: JSON.stringify({
-        message: `Deploy ${file.path} via Kakani Build`,
-        content: btoa(file.content),
+        message: `Update ${file.path} via Kakani Build`,
+        content: toBase64(file.content),
+        sha: sha, // Include SHA if we are updating
       }),
     });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json();
+      throw new Error(`Failed to upload ${file.path}: ${err.message}`);
+    }
   }
 
   // 4. Enable GitHub Pages
+  // Note: This might fail if pages is already enabled, so we handle it gracefully
   await fetch(`https://api.github.com/repos/${username}/${repoName}/pages`, {
     method: 'POST',
     headers,
