@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { HashRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { BusinessData, AppRoute, ServiceItem, ThemeId } from './types';
 import { DEFAULT_BUSINESS_DATA, APP_NAME } from './constants';
 import { generateHtml, generateCss, generateJs } from './services/templateGenerator';
@@ -8,9 +8,36 @@ import { deployToGitHub } from './services/githubService';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 
+// --- Fake Auth Context / State ---
+const useAuth = () => {
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('kakanibuild_user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setIsLoading(false);
+  }, []);
+
+  const login = (name: string, email: string) => {
+    const newUser = { name, email };
+    setUser(newUser);
+    localStorage.setItem('kakanibuild_user', JSON.stringify(newUser));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('kakanibuild_user');
+  };
+
+  return { user, login, logout, isLoading };
+};
+
 // --- Navbar Component ---
 
-const Navbar = () => {
+const Navbar = ({ user, logout }: { user: any; logout: () => void }) => {
   const navigate = useNavigate();
 
   return (
@@ -23,20 +50,278 @@ const Navbar = () => {
           <span className="font-bold text-xl tracking-tight">{APP_NAME}</span>
         </div>
         
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(AppRoute.BUILDER)}
-            className="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-indigo-700 transition"
-          >
-            Start Building
-          </button>
+        <div className="flex items-center gap-6">
+          <Link to={AppRoute.README} className="text-xs font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition">
+            Features
+          </Link>
+          <div className="h-4 w-px bg-slate-200"></div>
+          {user ? (
+            <>
+              <span className="hidden sm:inline text-xs font-bold text-slate-500 uppercase tracking-widest">
+                Hi, {user.name}
+              </span>
+              <button 
+                onClick={() => { logout(); navigate(AppRoute.LANDING); }}
+                className="text-xs font-bold text-red-500 hover:text-red-600 transition"
+              >
+                Logout
+              </button>
+              <button 
+                onClick={() => navigate(AppRoute.BUILDER)}
+                className="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-indigo-700 transition"
+              >
+                My Studio
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to={AppRoute.LOGIN} className="text-sm font-bold text-slate-600 hover:text-indigo-600 px-2">Login</Link>
+              <button 
+                onClick={() => navigate(AppRoute.REGISTER)}
+                className="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200"
+              >
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
       </div>
     </nav>
   );
 };
 
+// --- Auth Components ---
+
+const LoginPage = ({ login }: { login: (n: string, e: string) => void }) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ email: '', password: '' });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setTimeout(() => {
+      login("Entrepreneur", formData.email);
+      setLoading(false);
+      navigate(AppRoute.BUILDER);
+    }, 1200);
+  };
+
+  return (
+    <div className="pt-32 pb-20 px-4 min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+        <h2 className="text-3xl font-black mb-2">Welcome back</h2>
+        <p className="text-slate-500 text-sm mb-8 font-medium">Please enter your details to sign in.</p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Email Address</label>
+            <input 
+              type="email" 
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-xl outline-none transition-all font-medium text-sm" 
+              placeholder="you@company.com" 
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Password</label>
+            <input 
+              type="password" 
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-xl outline-none transition-all font-medium text-sm" 
+              placeholder="••••••••" 
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-xl shadow-indigo-100 mt-6"
+          >
+            {loading ? <i className="fas fa-circle-notch animate-spin"></i> : 'Sign In'}
+          </button>
+        </form>
+        
+        <p className="mt-8 text-center text-sm text-slate-500 font-medium">
+          Don't have an account? <Link to={AppRoute.REGISTER} className="text-indigo-600 font-bold hover:underline">Sign up</Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const RegisterPage = ({ login }: { login: (n: string, e: string) => void }) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setTimeout(() => {
+      login(formData.name, formData.email);
+      setLoading(false);
+      navigate(AppRoute.BUILDER);
+    }, 1500);
+  };
+
+  return (
+    <div className="pt-32 pb-20 px-4 min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+        <h2 className="text-3xl font-black mb-2">Join Kakani Build</h2>
+        <p className="text-slate-500 text-sm mb-8 font-medium">The most powerful way to launch your business online.</p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Full Name</label>
+            <input 
+              type="text" 
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-xl outline-none transition-all font-medium text-sm" 
+              placeholder="Jane Doe" 
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Email Address</label>
+            <input 
+              type="email" 
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-xl outline-none transition-all font-medium text-sm" 
+              placeholder="jane@example.com" 
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Password</label>
+            <input 
+              type="password" 
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-xl outline-none transition-all font-medium text-sm" 
+              placeholder="Create a secure password" 
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-xl shadow-indigo-100 mt-6"
+          >
+            {loading ? <i className="fas fa-circle-notch animate-spin"></i> : 'Create Account'}
+          </button>
+        </form>
+        
+        <p className="mt-8 text-center text-sm text-slate-500 font-medium">
+          Already have an account? <Link to={AppRoute.LOGIN} className="text-indigo-600 font-bold hover:underline">Sign in</Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // --- Page Components ---
+
+const ReadmePage = () => {
+  return (
+    <div className="pt-32 pb-20 px-4 min-h-screen bg-slate-50">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-xl">
+          <header className="mb-16">
+            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-indigo-200">
+              <i className="fas fa-bolt text-white text-2xl"></i>
+            </div>
+            <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight">Kakani Build</h1>
+            <p className="text-xl text-slate-500 leading-relaxed max-w-2xl font-medium italic">
+              "The premier AI-driven studio for creating, managing, and deploying professional business websites in seconds."
+            </p>
+          </header>
+
+          <section className="mb-16">
+            <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.3em] mb-8">Core Features</h2>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <i className="fas fa-magic text-indigo-500 mb-4 text-xl"></i>
+                <h3 className="font-bold text-lg mb-2">AI Copywriting</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">Leverages Google Gemini 3 Flash to refine and polish your business descriptions into high-converting sales copy.</p>
+              </div>
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <i className="fas fa-image text-indigo-500 mb-4 text-xl"></i>
+                <h3 className="font-bold text-lg mb-2">AI Image Generation</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">Generates bespoke 16:9 hero visuals using Gemini 2.5 Flash Image, perfectly tailored to your business niche.</p>
+              </div>
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <i className="fas fa-rocket text-indigo-500 mb-4 text-xl"></i>
+                <h3 className="font-bold text-lg mb-2">Direct Deployment</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">Integrated GitHub REST API allows one-click repository creation and GitHub Pages activation for instant live hosting.</p>
+              </div>
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <i className="fas fa-layer-group text-indigo-500 mb-4 text-xl"></i>
+                <h3 className="font-bold text-lg mb-2">Premium Theme Engine</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">Choose from 10 distinct, mobile-first design systems ranging from NeoBrutalist to Luxury Minimalist.</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-16">
+            <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.3em] mb-8">Technical Stack</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="font-bold text-slate-700">Frontend Framework</span>
+                <span className="text-slate-500 text-sm">React 19 (ESM)</span>
+              </div>
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="font-bold text-slate-700">Styling System</span>
+                <span className="text-slate-500 text-sm">Tailwind CSS 3.x</span>
+              </div>
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="font-bold text-slate-700">Artificial Intelligence</span>
+                <span className="text-slate-500 text-sm">Google Gemini API (@google/genai)</span>
+              </div>
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="font-bold text-slate-700">State Management</span>
+                <span className="text-slate-500 text-sm">React Hooks & LocalStorage Persistence</span>
+              </div>
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="font-bold text-slate-700">Deployment Engine</span>
+                <span className="text-slate-500 text-sm">GitHub REST API v3</span>
+              </div>
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="font-bold text-slate-700">File Utilities</span>
+                <span className="text-slate-500 text-sm">JSZip & FileSaver.js</span>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.3em] mb-8">The Collection</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              {[
+                'Modern', 'Midnight', 'Executive', 'Organic', 'NeoBrutalist', 
+                'Luxury', 'Editorial', 'Futuristic', 'Vibrant', 'Vintage'
+              ].map(t => (
+                <div key={t} className="text-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="text-[10px] font-black uppercase text-slate-400 mb-1">{t}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <footer className="mt-20 pt-12 border-t border-slate-100 text-center">
+            <Link to={AppRoute.LANDING} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-bold hover:scale-105 transition shadow-xl shadow-indigo-100 inline-block">
+              Back to Studio
+            </Link>
+          </footer>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -342,7 +627,18 @@ const BuilderPage = () => {
             <h3 id="deploy-modal-title" className="text-xl font-bold mb-4">Go Live on GitHub</h3>
             <div className="space-y-4">
               <label htmlFor="gh-token" className={labelBase}>GitHub Personal Access Token</label>
-              <input id="gh-token" type="password" value={ghToken} onChange={(e) => setGhToken(e.target.value)} placeholder="ghp_..." className={inputBase + " bg-slate-50 border-slate-200 mb-4"} />
+              <input id="gh-token" type="password" value={ghToken} onChange={(e) => setGhToken(e.target.value)} placeholder="ghp_..." className={inputBase + " bg-slate-50 border-slate-200"} />
+              <p className="mt-2 text-xs text-slate-500">
+                <a 
+                  href="https://github.com/settings/tokens/new?scopes=repo&description=KakaniBuild" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-1"
+                >
+                  Generate a new token <i className="fas fa-external-link-alt text-[10px]"></i>
+                </a>
+                <span className="ml-1">Make sure to select the 'repo' scope.</span>
+              </p>
             </div>
             {deployStatus === 'success' ? (
               <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl mb-4 text-xs font-bold" role="status">Live at: <a href={deployUrl} target="_blank" className="underline">{deployUrl}</a></div>
@@ -361,7 +657,7 @@ const BuilderPage = () => {
                   alert(e.message);
                   setDeployStatus('error');
                 }
-              }} disabled={deployStatus === 'loading' || !ghToken} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold transition hover:bg-indigo-700">Deploy Now</button>
+              }} disabled={deployStatus === 'loading' || !ghToken} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold transition hover:bg-indigo-700 mt-6">Deploy Now</button>
             )}
             <button onClick={() => setShowDeployModal(false)} className="w-full mt-2 text-slate-400 font-bold text-xs uppercase tracking-widest">Close</button>
           </div>
@@ -372,13 +668,26 @@ const BuilderPage = () => {
 };
 
 function App() {
+  const { user, login, logout, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <i className="fas fa-circle-notch animate-spin text-indigo-600 text-2xl"></i>
+      </div>
+    );
+  }
+
   return (
     <HashRouter>
       <div className="min-h-screen bg-slate-50">
-        <Navbar />
+        <Navbar user={user} logout={logout} />
         <Routes>
           <Route path={AppRoute.LANDING} element={<LandingPage />} />
+          <Route path={AppRoute.LOGIN} element={<LoginPage login={login} />} />
+          <Route path={AppRoute.REGISTER} element={<RegisterPage login={login} />} />
           <Route path={AppRoute.BUILDER} element={<BuilderPage />} />
+          <Route path={AppRoute.README} element={<ReadmePage />} />
         </Routes>
       </div>
     </HashRouter>

@@ -37,5 +37,8 @@ export interface DeploymentStatus {
 export enum AppRoute {
   LANDING = '/',
   BUILDER = '/builder',
-  SUCCESS = '/success'
+  SUCCESS = '/success',
+  LOGIN = '/login',
+  REGISTER = '/register',
+  README = '/readme'
 }
