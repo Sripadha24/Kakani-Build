@@ -58,12 +58,11 @@ const Navbar = ({ user, logout }: { user: any; logout: () => void }) => {
   );
 };
 
-// --- Page Components ---
 const LandingPage = () => {
   const navigate = useNavigate();
   return (
     <div className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
-      <div className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-8">v3.1 - Grid & Flexibility</div>
+      <div className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-8">v3.2 - Real-time Theme Engine</div>
       <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] text-slate-900">Infinite Grid. <br/><span className="text-indigo-600">Zero Code.</span></h1>
       <p className="text-lg text-slate-500 mb-12 font-medium">Create professional, flexible business layouts with AI. Control your grid density and launch globally in seconds.</p>
       <button onClick={() => navigate(AppRoute.BUILDER)} className="w-full sm:w-auto bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-xl shadow-2xl shadow-indigo-200 hover:scale-105 transition">Start Building</button>
@@ -98,6 +97,19 @@ const BuilderPage = () => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   const GITHUB_TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo&description=Kakani%20Build%20Deployment";
+
+  const themes: {id: ThemeId, name: string}[] = [
+    {id: 'modern', name: 'Modern'},
+    {id: 'midnight', name: 'Midnight'},
+    {id: 'executive', name: 'Executive'},
+    {id: 'organic', name: 'Organic'},
+    {id: 'neobrutalist', name: 'Pop Art'},
+    {id: 'luxury', name: 'Luxury'},
+    {id: 'editorial', name: 'Editorial'},
+    {id: 'futuristic', name: 'Cyberpunk'},
+    {id: 'vibrant', name: 'Vibrant'},
+    {id: 'vintage', name: 'Heritage'}
+  ];
 
   const handleAddService = () => {
     const id = Date.now().toString();
@@ -269,15 +281,15 @@ const BuilderPage = () => {
                 <div className="space-y-4 pt-4">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Thematic Direction</label>
                   <div className="grid grid-cols-2 gap-4">
-                    {(['modern', 'midnight', 'executive', 'organic', 'neobrutalist', 'luxury', 'vibrant', 'futuristic'] as ThemeId[]).map(tid => (
+                    {themes.map(t => (
                       <button 
-                        key={tid} onClick={() => setData({...data, themeId: tid})}
-                        className={`p-4 rounded-[2rem] border-2 text-left transition ${data.themeId === tid ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100'}`}
+                        key={t.id} onClick={() => setData({...data, themeId: t.id})}
+                        className={`p-4 rounded-[2rem] border-2 text-left transition ${data.themeId === t.id ? 'border-indigo-600 bg-indigo-50/50 scale-105 shadow-lg' : 'border-slate-100 hover:border-slate-200'}`}
                       >
                         <div className="h-10 bg-white rounded-xl mb-2 border border-slate-50 shadow-inner flex items-center justify-center">
-                          <span className="text-[8px] font-black uppercase text-slate-200">{tid}</span>
+                          <span className="text-[8px] font-black uppercase text-slate-200">{t.id}</span>
                         </div>
-                        <span className={`text-[9px] font-black uppercase ${data.themeId === tid ? 'text-indigo-600' : 'text-slate-900'}`}>{tid}</span>
+                        <span className={`text-[9px] font-black uppercase ${data.themeId === t.id ? 'text-indigo-600' : 'text-slate-900'}`}>{t.name}</span>
                       </button>
                     ))}
                   </div>
