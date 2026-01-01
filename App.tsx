@@ -62,9 +62,9 @@ const LandingPage = () => {
   const navigate = useNavigate();
   return (
     <div className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
-      <div className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-8">v3.2 - Real-time Theme Engine</div>
-      <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] text-slate-900">Infinite Grid. <br/><span className="text-indigo-600">Zero Code.</span></h1>
-      <p className="text-lg text-slate-500 mb-12 font-medium">Create professional, flexible business layouts with AI. Control your grid density and launch globally in seconds.</p>
+      <div className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-8">v3.3 - Dual-View Preview</div>
+      <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] text-slate-900">Infinite Grid. <br/><span className="text-indigo-600">Dual View.</span></h1>
+      <p className="text-lg text-slate-500 mb-12 font-medium">Create professional, flexible business layouts with AI. Toggle between desktop and mobile previews to ensure perfect responsiveness.</p>
       <button onClick={() => navigate(AppRoute.BUILDER)} className="w-full sm:w-auto bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-xl shadow-2xl shadow-indigo-200 hover:scale-105 transition">Start Building</button>
     </div>
   );
@@ -90,6 +90,7 @@ const BuilderPage = () => {
   const [data, setData] = useState<BusinessData>(DEFAULT_BUSINESS_DATA);
   const [activeTab, setActiveTab] = useState<'identity' | 'content' | 'services' | 'style'>('identity');
   const [mobileMode, setMobileMode] = useState<'edit' | 'preview'>('edit');
+  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [isRefining, setIsRefining] = useState(false);
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
   const [showDeploy, setShowDeploy] = useState(false);
@@ -320,22 +321,68 @@ const BuilderPage = () => {
         </aside>
 
         {/* Live Preview Workspace */}
-        <main className={`${mobileMode === 'preview' ? 'flex' : 'hidden'} lg:flex flex-col lg:col-span-7 h-full`}>
-          <div className="bg-slate-200/40 flex-1 lg:rounded-[3.5rem] border-8 border-white shadow-inner flex items-center justify-center relative overflow-hidden group">
-             {/* Device Frame with notched design */}
-             <div className={`transition-all duration-700 overflow-hidden relative shadow-2xl ${mobileMode === 'preview' || window.innerWidth < 1024 ? 'w-full h-full' : 'w-full h-[850px] lg:max-w-[420px] rounded-[3.5rem] border-[14px] border-slate-900'}`}>
-                <div className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-slate-900 rounded-b-3xl z-30"></div>
-                <iframe srcDoc={iframeDoc} className="w-full h-full bg-white border-none" title="Studio Output" />
-                {/* Safe Area Toggles */}
+        <main className={`${mobileMode === 'preview' ? 'flex' : 'hidden'} lg:flex flex-col lg:col-span-7 h-full overflow-hidden`}>
+          {/* Preview Controls */}
+          <div className="hidden lg:flex items-center justify-center gap-4 py-3 bg-white border-b border-slate-100 rounded-t-[3.5rem] mt-4 mx-4">
+             <button 
+              onClick={() => setPreviewDevice('mobile')}
+              className={`px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition ${previewDevice === 'mobile' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+             >
+               <i className="fas fa-mobile-alt"></i> Mobile
+             </button>
+             <button 
+              onClick={() => setPreviewDevice('desktop')}
+              className={`px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition ${previewDevice === 'desktop' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+             >
+               <i className="fas fa-desktop"></i> Desktop
+             </button>
+          </div>
+
+          <div className="bg-slate-200/40 flex-1 lg:rounded-b-[3.5rem] border-x-8 border-b-8 border-white shadow-inner flex items-center justify-center relative overflow-hidden group p-4 lg:p-8">
+             {/* Device Frame */}
+             <div className={`transition-all duration-700 overflow-hidden relative shadow-2xl bg-white
+                ${mobileMode === 'preview' || window.innerWidth < 1024 
+                  ? 'w-full h-full' 
+                  : previewDevice === 'mobile'
+                    ? 'w-full h-[850px] lg:max-w-[420px] rounded-[3.5rem] border-[14px] border-slate-900'
+                    : 'w-full h-full rounded-2xl border-[4px] border-slate-800'
+                }`}
+             >
+                {/* Notch for mobile frame */}
+                {previewDevice === 'mobile' && (
+                  <div className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-slate-900 rounded-b-3xl z-30"></div>
+                )}
+                
+                {/* Browser bar for desktop frame */}
+                {previewDevice === 'desktop' && (
+                  <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700 z-30">
+                    <div className="flex gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                      <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                    </div>
+                    <div className="flex-1 bg-slate-700 h-4 rounded-md mx-4 opacity-50"></div>
+                  </div>
+                )}
+
+                <iframe 
+                  srcDoc={iframeDoc} 
+                  className={`w-full h-full bg-white border-none ${previewDevice === 'desktop' ? 'h-[calc(100%-32px)]' : 'h-full'}`} 
+                  title="Studio Output" 
+                />
+                
+                {/* Status Overlay */}
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-40 opacity-0 group-hover:opacity-100 transition duration-500">
-                  <div className="bg-black/80 backdrop-blur-md px-6 py-2 rounded-full text-[8px] font-black text-white uppercase tracking-widest whitespace-nowrap shadow-2xl">Fluid Engine Active</div>
+                  <div className="bg-black/80 backdrop-blur-md px-6 py-2 rounded-full text-[8px] font-black text-white uppercase tracking-widest whitespace-nowrap shadow-2xl">
+                    {previewDevice === 'mobile' ? 'Mobile Optimizing' : 'Desktop Rendering'}
+                  </div>
                 </div>
              </div>
           </div>
         </main>
       </div>
 
-      {/* Responsive Mode Toggle */}
+      {/* Responsive Mode Toggle (Mobile) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 h-20 flex items-center justify-around px-12 z-[70] shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         <button onClick={() => setMobileMode('edit')} className={`flex flex-col items-center gap-1.5 transition ${mobileMode === 'edit' ? 'text-indigo-600 scale-110' : 'text-slate-400'}`}>
           <div className={`w-14 h-8 rounded-2xl flex items-center justify-center transition ${mobileMode === 'edit' ? 'bg-indigo-50' : ''}`}><i className="fas fa-layer-group"></i></div>
