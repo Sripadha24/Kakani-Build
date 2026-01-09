@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { BusinessData, AppRoute, ServiceItem, ThemeId } from './types';
 import { DEFAULT_BUSINESS_DATA, APP_NAME } from './constants';
 import { generateHtml, generateCss, generateJs } from './services/templateGenerator';
@@ -464,6 +465,7 @@ function App() {
           <Route path={AppRoute.REGISTER} element={<AuthPage type="register" login={login} />} />
           <Route path={AppRoute.BUILDER} element={<BuilderPage />} />
         </Routes>
+        <Analytics />
       </div>
     </HashRouter>
   );
